@@ -83,5 +83,12 @@ class GtkUI(GtkPluginBase):
             self.glade.get_widget("checkbutton_active").set_active(config['active'])
 
     def cb_get_ip(self, ip):
-        self.glade.get_widget("label_IP_value").set_text(ip)
-        component.get("Preferences").glade.get_widget("entry_interface").set_text(ip)
+        IP_label = self.glade.get_widget("label_IP_value")
+        # Sometimes this is None
+        if IP_label:
+            IP_label.set_text(ip)
+        main_prefs = component.get("Preferences")
+        if hasattr(main_prefs, "glade"):
+            main_prefs.glade.get_widget("entry_interface").set_text(ip)
+        else:
+            main_prefs.builder.get_object("entry_interface").set_text(ip)

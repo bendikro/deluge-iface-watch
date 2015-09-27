@@ -7,6 +7,7 @@
 # of this program with the OpenSSL library. See LICENSE for more details.
 #
 
+import platform
 
 import deluge.common
 import deluge.component as component
@@ -18,6 +19,7 @@ import ifacewatch.util.common
 import ifacewatch.util.logger
 from ifacewatch.ifacewatch_config import IfacewatchConfig
 from ifacewatch.lib.pyiface.iface import Interface
+from ifacewatch.lib import ifcfg
 from ifacewatch.util.common import IfaceWatchIPChangedEvent
 
 
@@ -75,24 +77,32 @@ class Core(CorePluginBase):
 
     def check_interface(self, *args, **kwargs):
         if self.config is None:
-            return
+            return True
         prev_ip = self.ip
         self.ip = None
         iface = self.config.get_config()["interface"]
 
         if iface.strip():
             try:
-                iff = Interface(name=str(iface))
-                self.ip = iff.ip_str()
-                if not deluge.common.is_ip(self.ip):
+                for interface in ifcfg.interfaces().itervalues():
+                    if interface["device"] == iface:
+                        self.ip = interface["inet"]
+                        break
+                if self.ip is None and platform.system() == "Linux":
+                    iff = Interface(name=str(iface))
+                    self.ip = iff.ip_str()
+                if self.ip is not None and not deluge.common.is_ip(self.ip):
                     self.log.info("Invalid IP returned for interface '%s': %s" % (iface, self.ip), gtkui=True)
                     self.ip = None
             except TypeError as e:
                 self.log.error("TypeError: %s" % e, gtkui=True)
-
-        if self.ip is None:
+                return True
+        else:
             self.ip = ""
             iface = "<all>"
+
+        if self.ip is None:
+            return True
 
         has_changed = prev_ip != self.ip
 
