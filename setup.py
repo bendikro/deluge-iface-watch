@@ -12,7 +12,7 @@ from setuptools import find_packages, setup
 __plugin_name__ = "IfaceWatch"
 __author__ = "Bro"
 __author_email__ = "bro.devel+ifacewatch@gmail.com"
-__version__ = "1.0"
+__version__ = "1.1"
 __url__ = "https://github.com/bendikro/deluge-iface-watch"
 __license__ = "GPLv3"
 __description__ = """

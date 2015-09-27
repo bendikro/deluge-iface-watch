@@ -10,6 +10,7 @@
 import deluge.component as component
 from deluge.log import LOG as log  # NOQA
 from OpenSSL.SSL import Error as SSLError
+from twisted.internet import reactor
 
 from ifacewatch.util import common
 from ifacewatch.util.gtkui_log import IfaceWatchLogMessageEvent
@@ -51,7 +52,8 @@ class Logger(object):
     def gtkui_log_message_event(self, message):
         try:
             # Tests throws KeyError for EventManager when running this method, so wrap this in try/except
-            component.get("EventManager").emit(IfaceWatchLogMessageEvent(message))
+            eventmanager = component.get("EventManager")
+            reactor.callLater(1, eventmanager.emit, IfaceWatchLogMessageEvent(message))
         except KeyError:
             pass
         except SSLError:

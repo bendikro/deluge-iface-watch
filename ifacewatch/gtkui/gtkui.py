@@ -22,7 +22,7 @@ class GtkUI(GtkPluginBase):
     def enable(self):
         self.create_ui()
         self.on_show_prefs()  # Necessary for the first time when the plugin is installed
-        client.register_event_handler("IfaceWatchLogMessageEvent", self.cb_on_log_message_arrived_event)
+        client.register_event_handler("IfaceWatchLogMessageEvent", self.cb_on_log_message_event)
         client.register_event_handler("IfaceWatchIPChangedEvent", self.cb_get_ip)
 
     def disable(self):
@@ -42,7 +42,7 @@ class GtkUI(GtkPluginBase):
         component.get("Preferences").add_page("IfaceWatch", box)
         component.get("PluginManager").register_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").register_hook("on_show_prefs", self.on_show_prefs)
-        self.gtkui_log = GTKUILogger(self.glade.get_widget('textview_log'))
+        self.gtkui_log = GTKUILogger(self.glade.get_widget("textview_log"))
         self.log = Logger(gtkui_logger=self.gtkui_log)
 
 ###############################
@@ -67,9 +67,9 @@ class GtkUI(GtkPluginBase):
     def on_show_prefs(self):
         """Called when showing preferences window"""
         client.ifacewatch.get_config().addCallback(self.cb_get_config)
-        client.ifacewatch.get_ip().addCallback(self.cb_get_ip)
+        client.ifacewatch.get_ip().addCallback(self.update_ip)
 
-    def cb_on_log_message_arrived_event(self, message):
+    def cb_on_log_message_event(self, message):
         """Callback function called on GtkUILogMessageEvent events"""
         self.gtkui_log.gtkui_log_message(message)
 
@@ -83,5 +83,12 @@ class GtkUI(GtkPluginBase):
             self.glade.get_widget("checkbutton_active").set_active(config['active'])
 
     def cb_get_ip(self, ip):
+        self.update_ip(ip)
+
+    def update_ip(self, ip):
         self.glade.get_widget("label_IP_value").set_text(ip)
-        component.get("Preferences").glade.get_widget("entry_interface").set_text(ip)
+        main_prefs = component.get("Preferences")
+        if hasattr(main_prefs, "glade"):
+            main_prefs.glade.get_widget("entry_interface").set_text(ip)
+        else:
+            main_prefs.builder.get_object("entry_interface").set_text(ip)

@@ -34,7 +34,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_checkbutton_active_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_checkbutton_active_toggled"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -48,7 +48,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <signal name="clicked" handler="on_button_update_iface_clicked" swapped="no"/>
+                        <signal name="clicked" handler="on_button_update_iface_clicked"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
