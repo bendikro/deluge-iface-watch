@@ -184,7 +184,6 @@ class FreeBSDParser(MacOSXParser):
 
         """
         out, err, ret = exec_cmd(['netstat', '-rn', '-f', 'inet'])
-        #print "out:", out
         lines = out.splitlines()
         iface = None
         for line in lines[2:]:

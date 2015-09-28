@@ -10,6 +10,9 @@
 from deluge.event import DelugeEvent
 
 from ifacewatch.util.common import get_current_date_in_isoformat
+from twisted.internet import reactor
+
+import gtk
 
 
 class GTKUILogger(object):
@@ -19,13 +22,16 @@ class GTKUILogger(object):
         self.textview = textview
 
     def gtkui_log_message(self, message):
-        def add_msg():
-            buf = self.textview.get_buffer()
+        def add_msg(message):
             time = get_current_date_in_isoformat()
-            msg_to_append = "(%s): %s" % (time, message)
-            buf.insert(buf.get_end_iter(), msg_to_append + "\n")
+            buf = self.textview.get_buffer()
+            msg_to_append = "(%s): %s\n" % (time, message)
+            buf.insert(buf.get_end_iter(), msg_to_append)
+            return False
+        # Must use callLater to avoid UI freezing in classic mode.
+        #reactor.callLater(1, add_msg, message)
         import gobject  # Do not import on top as only the client needs to have this package
-        gobject.idle_add(add_msg)
+        gobject.idle_add(add_msg, message)
 
 
 class IfaceWatchLogMessageEvent(DelugeEvent):

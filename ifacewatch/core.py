@@ -9,6 +9,8 @@
 
 import platform
 
+from twisted.internet import reactor
+
 import deluge.common
 import deluge.component as component
 from deluge.core.rpcserver import export
@@ -37,12 +39,13 @@ class Core(CorePluginBase):
         self.config = None
         self.ip = None
         self.log = ifacewatch.util.logger.Logger()
-        self.log.info("Core init", gtkui=True)
         self.core = component.get("Core")
         self.core.config.register_set_function("listen_interface", self.interface_changed)
 
     def interface_changed(self, iface, ip):
-        component.get("EventManager").emit(IfaceWatchIPChangedEvent(ip))
+        def emit(ip):
+            component.get("EventManager").emit(IfaceWatchIPChangedEvent(ip))
+        reactor.callLater(1, emit, ip)
 
     def enable(self, config=None):
         if config is None:
@@ -54,16 +57,18 @@ class Core(CorePluginBase):
         self.scheduler_timer()
         self.check_interface()
 
-    def scheduler_timer(self):
+    def stop_timer(self):
         if self.timer:
             if self.timer.running:
                 self.timer.stop()
-        else:
-            self.timer = LoopingCall(self.check_interface)
+
+    def scheduler_timer(self):
+        self.stop_timer()
+        self.timer = LoopingCall(self.check_interface)
 
         interval = int(self.config.get_config()["update_interval"])
         if self.config.get_config()["active"]:
-            self.timer.start(interval * 6, now=True)  # Multiply to get seconds
+            self.timer.start(interval * 60, now=True)  # Multiply to get seconds
             self.log.info("Scheduling watch with interval %s." %
                           self.config.get_config()["update_interval"], gtkui=True)
         else:
@@ -71,6 +76,7 @@ class Core(CorePluginBase):
 
     def disable(self):
         self.config.save()
+        self.stop_timer()
 
     def update(self):
         pass
@@ -133,7 +139,7 @@ class Core(CorePluginBase):
         newstate = config["active"] != self.config.get_config()["active"]
         self.config.set_config(config)
         if newstate and config["active"] is True:
-            self.log.info("Watch mode enabled")
+            self.log.info("Watch mode enabled", gtkui=True)
         if newiface:
             self.check_interface()
         if newinterval or newstate:
