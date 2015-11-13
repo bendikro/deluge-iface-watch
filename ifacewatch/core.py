@@ -15,6 +15,7 @@ from deluge.core.rpcserver import export
 from deluge.plugins.pluginbase import CorePluginBase
 from twisted.internet import threads
 from twisted.internet.task import LoopingCall
+
 import ifacewatch.util.common
 import ifacewatch.util.logger
 from ifacewatch.ifacewatch_config import IfacewatchConfig
@@ -46,6 +47,7 @@ class Core(CorePluginBase):
             self.log.info("IP was changed from outside IfaceWatch: %s -> %s" %
                           (self.ip, ip if ip else "0.0.0.0"), gtkui=True)
         self.ip = ip
+
         def emit(ip):
             component.get("EventManager").emit(IfaceWatchIPChangedEvent(ip))
         # Only emit while plugin is enabled
@@ -129,6 +131,7 @@ class Core(CorePluginBase):
             return True
         self.is_checking = True
         d = threads.deferToThread(self._check_interface, *args, **kwargs)
+
         def on_finished(args):
             self.is_checking = False
         d.addBoth(on_finished)
