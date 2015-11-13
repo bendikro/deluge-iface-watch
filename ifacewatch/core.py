@@ -13,8 +13,8 @@ import deluge.common
 import deluge.component as component
 from deluge.core.rpcserver import export
 from deluge.plugins.pluginbase import CorePluginBase
+from twisted.internet import threads
 from twisted.internet.task import LoopingCall
-
 import ifacewatch.util.common
 import ifacewatch.util.logger
 from ifacewatch.ifacewatch_config import IfacewatchConfig
@@ -35,15 +35,22 @@ class Core(CorePluginBase):
 
         self.timer = None
         self.config = None
+        self.is_checking = False
         self.ip = None
         self.log = ifacewatch.util.logger.Logger()
         self.core = component.get("Core")
         self.core.config.register_set_function("listen_interface", self.interface_changed)
 
     def interface_changed(self, iface, ip):
+        if self.ip != ip:
+            self.log.info("IP was changed from outside IfaceWatch: %s -> %s" %
+                          (self.ip, ip if ip else "0.0.0.0"), gtkui=True)
+        self.ip = ip
         def emit(ip):
             component.get("EventManager").emit(IfaceWatchIPChangedEvent(ip))
-        emit(ip)
+        # Only emit while plugin is enabled
+        if self.config is not None:
+            emit(ip)
 
     def enable(self, config=None):
         if config is None:
@@ -74,49 +81,57 @@ class Core(CorePluginBase):
 
     def disable(self):
         self.config.save()
+        self.config = None
         self.stop_timer()
 
     def update(self):
         pass
 
-    def check_interface(self, *args, **kwargs):
-        if self.config is None:
-            return True
+    def _check_interface(self, *args, **kwargs):
         prev_ip = self.ip
-        self.ip = None
+        ip = None
         iface = self.config.get_config()["interface"]
-
         if iface.strip():
             try:
                 for interface in ifcfg.interfaces().itervalues():
                     if interface["device"] == iface:
-                        self.ip = interface["inet"]
+                        ip = interface["inet"]
                         break
-                if self.ip is None and platform.system() == "Linux":
+                if ip is None and platform.system() == "Linux":
                     iff = Interface(name=str(iface))
-                    self.ip = iff.ip_str()
-                if self.ip is not None and not deluge.common.is_ip(self.ip):
-                    self.log.info("Invalid IP returned for interface '%s': %s" % (iface, self.ip), gtkui=True)
-                    self.ip = None
+                    ip = iff.ip_str()
+                if ip is not None and not deluge.common.is_ip(ip):
+                    self.log.info("Invalid IP returned for interface '%s': %s" % (iface, ip), gtkui=True)
+                    ip = None
             except TypeError as e:
                 self.log.error("TypeError: %s" % e, gtkui=True)
-                return True
+                return ip
         else:
-            self.ip = ""
+            ip = ""
             iface = "<all>"
 
-        if self.ip is None:
-            return True
+        if ip is None:
+            return ip
 
-        has_changed = prev_ip != self.ip
+        has_changed = prev_ip != ip
 
         if prev_ip is not None and has_changed:
             self.log.info("IP from interface %s is new: %s -> %s" %
-                          (iface, prev_ip, self.ip if self.ip else "0.0.0.0"), gtkui=True)
+                          (iface, prev_ip, ip if ip else "0.0.0.0"), gtkui=True)
         if has_changed:
-            self.log.info("Updating with IP '%s'" % (self.ip if self.ip else "0.0.0.0"), gtkui=True)
-            self.core.set_config({"listen_interface": self.ip})
+            self.log.info("Updating with IP '%s'" % (ip if ip else "0.0.0.0"), gtkui=True)
+            self.ip = ip
+            self.core.set_config({"listen_interface": ip})
+        return ip
 
+    def check_interface(self, *args, **kwargs):
+        if self.config is None or self.is_checking is True:
+            return True
+        self.is_checking = True
+        d = threads.deferToThread(self._check_interface, *args, **kwargs)
+        def on_finished(args):
+            self.is_checking = False
+        d.addBoth(on_finished)
         return True
 
     @export

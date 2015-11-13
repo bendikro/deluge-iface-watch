@@ -33,6 +33,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
+                        <property name="use_action_appearance">False</property>
                         <property name="draw_indicator">True</property>
                         <signal name="toggled" handler="on_checkbutton_active_toggled"/>
                       </widget>
@@ -43,18 +44,7 @@
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkButton" id="button_update_iface">
-                        <property name="label" translatable="yes">Update</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <signal name="clicked" handler="on_button_update_iface_clicked"/>
-                      </widget>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
                       <widget class="GtkHBox" id="hbox2">
