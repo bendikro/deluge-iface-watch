@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/bat-serjo/PyIface.git
+	branch = master
+	commit = 4557dbda96d2e4b1142c60603d4a27d007a9ffe6
+	parent = 3d7056c686a3fe2d067c64dc6f35620cd992db2c
+	method = merge
+	cmdver = 0.3.1
