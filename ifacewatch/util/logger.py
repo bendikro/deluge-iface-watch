@@ -7,13 +7,14 @@
 # of this program with the OpenSSL library. See LICENSE for more details.
 #
 
-import deluge.component as component
-from deluge.log import LOG as log  # NOQA
 from OpenSSL.SSL import Error as SSLError
 from twisted.internet import reactor
 
-from ifacewatch.util import common
-from ifacewatch.util.gtkui_log import IfaceWatchLogMessageEvent
+import deluge.component as component
+from deluge.log import LOG as log  # NOQA
+
+from . import common
+from .gtkui_log import IfaceWatchLogMessageEvent
 
 
 class Logger(object):

@@ -9,7 +9,7 @@
 
 from deluge.event import DelugeEvent
 
-from ifacewatch.util.common import get_current_date_in_isoformat
+from .common import get_current_date_in_isoformat
 
 
 class GTKUILogger(object):

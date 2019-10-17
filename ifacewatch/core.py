@@ -9,26 +9,25 @@
 
 import platform
 
+from twisted.internet import threads
+from twisted.internet.task import LoopingCall
+
 import deluge.common
 import deluge.component as component
 from deluge.core.rpcserver import export
 from deluge.plugins.pluginbase import CorePluginBase
-from twisted.internet import threads
-from twisted.internet.task import LoopingCall
 
-import ifacewatch.util.common
-import ifacewatch.util.logger
+import ifcfg
+import pyiface.iface
 from ifacewatch.ifacewatch_config import IfacewatchConfig
-from ifacewatch.lib import ifcfg
-from ifacewatch.lib.pyiface.iface import Interface
-from ifacewatch.util.common import IfaceWatchIPChangedEvent
+from ifacewatch.util import common, logger
 
 
 class Core(CorePluginBase):
 
     def __init__(self, name):
         """Used for tests only"""
-        if name is not "test":
+        if name != "test":
             super(Core, self).__init__(name)
         else:
             # To avoid warnings when running tests
@@ -38,7 +37,7 @@ class Core(CorePluginBase):
         self.config = None
         self.is_checking = False
         self.ip = None
-        self.log = ifacewatch.util.logger.Logger()
+        self.log = logger.Logger()
         self.core = component.get("Core")
         self.core.config.register_set_function("listen_interface", self.interface_changed)
 
@@ -49,7 +48,8 @@ class Core(CorePluginBase):
         self.ip = ip
 
         def emit(ip):
-            component.get("EventManager").emit(IfaceWatchIPChangedEvent(ip))
+            component.get("EventManager").emit(common.IfaceWatchIPChangedEvent(ip))
+
         # Only emit while plugin is enabled
         if self.config is not None:
             emit(ip)
@@ -59,7 +59,7 @@ class Core(CorePluginBase):
             self.config = IfacewatchConfig(self.log)
         else:
             self.config = config
-        self.log.info("Enabled Iface Watch %s" % ifacewatch.util.common.get_version())
+        self.log.info("Enabled Iface Watch %s" % common.get_version())
 
         self.scheduler_timer()
         self.check_interface()
@@ -95,12 +95,12 @@ class Core(CorePluginBase):
         iface = self.config.get_config()["interface"]
         if iface.strip():
             try:
-                for interface in ifcfg.interfaces().itervalues():
+                for interface in ifcfg.interfaces().values():
                     if interface["device"] == iface:
                         ip = interface["inet"]
                         break
                 if ip is None and platform.system() == "Linux":
-                    iff = Interface(name=str(iface))
+                    iff = pyiface.iface.Interface(name=str(iface))
                     ip = iff.ip_str()
                 if ip is not None and not deluge.common.is_ip(ip):
                     self.log.info("Invalid IP returned for interface '%s': %s" % (iface, ip), gtkui=True)
@@ -143,6 +143,13 @@ class Core(CorePluginBase):
         return self.core.get_config_value("listen_interface")
 
     @export
+    def get_interfaces(self):
+        ifaces = []
+        for name, interface in ifcfg.interfaces().items():
+            ifaces.append(name)
+        return ifaces
+
+    @export
     def get_config(self):
         """Returns the config dictionary"""
         return self.config.get_config()
@@ -150,8 +157,8 @@ class Core(CorePluginBase):
     @export
     def save_config(self, config):
         newiface = "interface" in config and config["interface"] != self.config.get_config()["interface"]
-        newinterval = ("update_interval" in config and
-                       config["update_interval"] != self.config.get_config()["update_interval"])
+        newinterval = ("update_interval" in config
+                       and config["update_interval"] != self.config.get_config()["update_interval"])
         newstate = config["active"] != self.config.get_config()["active"]
         self.config.set_config(config)
         if newstate and config["active"] is True:

@@ -10,7 +10,6 @@
 import copy
 
 import deluge.configmanager
-from deluge.event import DelugeEvent
 
 CONFIG_FILENAME = "ifacewatch.conf"
 
@@ -23,17 +22,6 @@ __DEFAULT_PREFS = {
 
 def default_prefs():
     return copy.deepcopy(__DEFAULT_PREFS)
-
-
-class YARSSConfigChangedEvent(DelugeEvent):
-    """
-    Emitted when the config has been changed.
-    """
-    def __init__(self, config):
-        """
-        :param config: the new config
-        """
-        self._args = [config]
 
 
 class IfacewatchConfig(object):

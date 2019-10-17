@@ -12,7 +12,7 @@ from setuptools import find_packages, setup
 __plugin_name__ = "IfaceWatch"
 __author__ = "Bro"
 __author_email__ = "bro.devel+ifacewatch@gmail.com"
-__version__ = "1.2"
+__version__ = "2.0"
 __url__ = "https://github.com/bendikro/deluge-iface-watch"
 __license__ = "GPLv3"
 __description__ = """
@@ -36,9 +36,12 @@ setup(
     packages=packages,
     package_data=__pkg_data__,
     entry_points="""
-    [deluge.plugin.core]
-    %s = %s:CorePlugin
-    [deluge.plugin.gtkui]
-    %s = %s:GtkUIPlugin
-    """ % ((__plugin_name__, __plugin_name__.lower()) * 2)
+[deluge.plugin.core]
+{name} = {name_lower}:CorePlugin
+[deluge.plugin.gtk3ui]
+{name} = {name_lower}:Gtk3UIPlugin
+[{name_lower}.libpaths]
+pyiface = {name_lower}.include.pyiface
+ifcfg = {name_lower}.include.ifcfg.src
+""".format(name=__plugin_name__, name_lower=__plugin_name__.lower())
 )

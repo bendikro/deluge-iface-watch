@@ -16,6 +16,10 @@ $ python setup.py bdist_egg
 
 ## Changelog ##
 
+v2.0 - 2019-10-17
+
+* Support for Deluge v2
+
 v1.2 - 2015-11-13
 
 * Moved interface checking to background thread
@@ -27,5 +31,3 @@ v1.1 - 2015-09-27
 v1.0 - 2015-09-27
 
 * Support for unix hosts with pyiface
-
-(Tested with Deluge 1.3.11)

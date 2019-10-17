@@ -1,23 +1,28 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2015 bendikro bro.devel+ifacewatch@gmail.com
+# Copyright (C) 2019 bendikro bro.devel+ifacewatch@gmail.com
 #
 # This file is part of Iface Watch and is licensed under GNU General Public
 # License 3.0, or later.
 #
+import gi  # isort:skip
+gi.require_version('Gdk', '3.0')  # noqa: F401
+gi.require_version('Gtk', '3.0')  # noqa: F401
+gi.require_version('PangoCairo', '1.0')  # noqa: F401
 
-import gtk
+# isort:imports-thirdparty
+from gi.repository import Gtk
 
-from deluge.ui.client import client
-from deluge.plugins.pluginbase import GtkPluginBase
 import deluge.component as component
+from deluge.plugins.pluginbase import Gtk3PluginBase
+from deluge.ui.client import client
 
-from ifacewatch.util.logger import Logger
-from ifacewatch.util.gtkui_log import GTKUILogger
 from ifacewatch.util.common import get_resource
+from ifacewatch.util.gtkui_log import GTKUILogger
+from ifacewatch.util.logger import Logger
 
 
-class GtkUI(GtkPluginBase):
+class GtkUI(Gtk3PluginBase):
 
     def enable(self):
         self.last_config = None
@@ -32,18 +37,20 @@ class GtkUI(GtkPluginBase):
         component.get("PluginManager").deregister_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").deregister_hook("on_show_prefs", self.on_show_prefs)
 
-    def create_ui(self):
-        self.glade = gtk.glade.XML(get_resource("ifacewatch.glade"))
-        self.ifacewatch_window = self.glade.get_widget('ifacewatch_window')
-        box = self.glade.get_widget("ifacewatch_prefs_box")
+    def get_object(self, name):
+        return self.builder.get_object(name)
 
-        self.glade.signal_autoconnect({
+    def create_ui(self):
+        self.builder = Gtk.Builder.new_from_file(get_resource("ifacewatch.ui"))
+        self.ifacewatch_window = self.get_object('ifacewatch_window')
+        self.builder.connect_signals({
             "on_checkbutton_active_toggled": self.on_checkbutton_active_toggled,
         })
+        box = self.get_object("ifacewatch_prefs_box")
         component.get("Preferences").add_page("IfaceWatch", box)
         component.get("PluginManager").register_hook("on_apply_prefs", self.on_apply_prefs)
         component.get("PluginManager").register_hook("on_show_prefs", self.on_show_prefs)
-        self.gtkui_log = GTKUILogger(self.glade.get_widget("textview_log"))
+        self.gtkui_log = GTKUILogger(self.get_object("textview_log"))
         self.log = Logger(gtkui_logger=self.gtkui_log)
 
 ###############################
@@ -51,14 +58,14 @@ class GtkUI(GtkPluginBase):
 ###############################
 
     def on_checkbutton_active_toggled(self, widget):
-        active = self.glade.get_widget("checkbutton_active").get_active()
+        active = self.get_object("checkbutton_active").get_active()
         client.ifacewatch.save_config({"active": active})
 
     def on_apply_prefs(self):
         """Called when the 'Apply' button is pressed"""
-        iface = self.glade.get_widget("entry_interface").get_text()
-        interval = self.glade.get_widget("spinbutton_update_interval").get_value()
-        active = self.glade.get_widget("checkbutton_active").get_active()
+        iface = self.get_object("interface_combobox").get_active_text()
+        interval = self.get_object("spinbutton_update_interval").get_value()
+        active = self.get_object("checkbutton_active").get_active()
 
         if self.last_config is not None:
             if self.last_config['interface'] != iface:
@@ -74,6 +81,35 @@ class GtkUI(GtkPluginBase):
         """Called when showing preferences window"""
         client.ifacewatch.get_config().addCallback(self.cb_get_config)
         client.ifacewatch.get_ip().addCallback(self.update_ip)
+        client.ifacewatch.get_interfaces().addCallback(self.on_get_interfaces)
+
+    def on_get_interfaces(self, ifaces):
+        interface_combobox = self.get_object("interface_combobox")
+        current_iface = self.last_config['interface']
+
+        ifaces_in_model = []
+        model = interface_combobox.get_model()
+        for i in range(len(model)):
+            it = model.get_iter(i)
+            value = model.get_value(it, 0)
+            ifaces_in_model.append(value)
+
+        #  Add interfaces not already in the list
+        for i, iface in enumerate(ifaces):
+            if iface in ifaces_in_model:
+                continue
+            interface_combobox.append_text(iface)
+
+        # Get the index of the active text
+        active_index = -1
+        for i in range(len(model)):
+            it = model.get_iter(i)
+            value = model.get_value(it, 0)
+            if value == current_iface:
+                active_index = i
+
+        if active_index != -1:
+            interface_combobox.set_active(active_index)
 
     def cb_on_log_message_event(self, message):
         """Callback function called on GtkUILogMessageEvent events"""
@@ -85,15 +121,33 @@ class GtkUI(GtkPluginBase):
             self.log.error("An error has occured. Cannot load data from config")
         else:
             self.last_config = config
-            self.glade.get_widget("entry_interface").set_text(config['interface'])
-            self.glade.get_widget("spinbutton_update_interval").set_value(int(config['update_interval']))
-            self.glade.get_widget("checkbutton_active").set_active(config['active'])
+            self.get_object("spinbutton_update_interval").set_value(int(config['update_interval']))
+            self.get_object("checkbutton_active").set_active(config['active'])
+            self.set_iface_value(config['interface'])
+
+    def get_iface_value(self):
+        interface_combobox = self.get_object("interface_combobox")
+        text = interface_combobox.get_active_text()
+        return text
+
+    def set_iface_value(self, interface):
+        interface_combobox = self.get_object("interface_combobox")
+        model = interface_combobox.get_model()
+        for i in range(len(model)):
+            it = model.get_iter(i)
+            v = model.get_value(it, 0)
+            if v == interface:
+                interface_combobox.set_active(i)
+                return
+
+        interface_combobox.append_text(interface)
+        interface_combobox.set_active(0)
 
     def cb_get_ip(self, ip):
         self.update_ip(ip)
 
     def update_ip(self, ip):
-        label = self.glade.get_widget("label_IP_value")
+        label = self.get_object("label_IP_value")
         # May happen if the plugin is not actually enabled
         if label is None:
             return

@@ -12,6 +12,7 @@ import os
 import sys
 
 import pkg_resources
+
 from deluge.event import DelugeEvent
 
 
@@ -59,16 +60,6 @@ def isodate_to_datetime(date_in_isoformat):
         return get_default_date()
 
 
-def string_to_unicode(string):
-    if type(string) is unicode:
-        # Already unicode
-        return string
-    try:
-        return string.decode("utf-8")
-    except:
-        return string
-
-
 def method_name():
     return sys._getframe(3).f_code.co_name
 
@@ -94,13 +85,13 @@ def dicts_equals(dict1, dict2, debug=False):
     """Compares two dictionaries, checking that they have the same key/values"""
     ret = True
     if not (type(dict1) is dict and type(dict2) is dict):
-        print "dicts_equals: Both arguments are not dictionaries!"
+        print("dicts_equals: Both arguments are not dictionaries!")
         return False
 
     key_diff = set(dict1.keys()) - set(dict2.keys())
     if key_diff:
         if debug:
-            print "dicts_equals: Keys differ:", key_diff
+            print("dicts_equals: Keys differ:", key_diff)
         return False
     for key in dict1.keys():
         if type(dict1[key]) is dict and type(dict2[key]) is dict:
@@ -110,7 +101,7 @@ def dicts_equals(dict1, dict2, debug=False):
             # Compare values
             if dict1[key] != dict2[key]:
                 if debug:
-                    print "Value for key '%s' differs. Value1: '%s', Value2: '%s'" % (key, dict1[key], dict2[key])
+                    print("Value for key '%s' differs. Value1: '%s', Value2: '%s'" % (key, dict1[key], dict2[key]))
                 ret = False
     return ret
 
