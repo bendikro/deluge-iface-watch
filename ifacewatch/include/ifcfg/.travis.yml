@@ -1,0 +1,18 @@
+dist: trusty
+
+language: python
+
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+
+install:
+  - pip install -U pip codecov tox tox-travis
+
+script:
+  - tox
+
+after_success:
+  - codecov
